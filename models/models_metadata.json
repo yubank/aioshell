@@ -1,0 +1,16 @@
+{
+  "downloaded_models": {
+    "codellama-7b": {
+      "local_path": "/home/future/src/aioshell/models/codellama-7b",
+      "download_date": "27675.097646209",
+      "model_info": {
+        "name": "codellama/CodeLlama-7b-Instruct-hf",
+        "size": "7B",
+        "description": "CodeLlama 7B Instruct 모델 (권장)",
+        "memory_requirement": "16GB",
+        "download_size": "13GB"
+      },
+      "status": "downloaded"
+    }
+  }
+}

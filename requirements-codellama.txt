@@ -1,0 +1,61 @@
+# Core dependencies for AI Shell
+click>=8.0.0              # CLI framework
+colorama>=0.4.4           # Terminal colors
+prompt-toolkit>=3.0.0     # Advanced terminal interface
+rich>=13.0.0              # Text formatting and styling
+
+# CodeLlama and local AI dependencies
+transformers>=4.35.0      # Hugging Face transformers for CodeLlama
+torch>=2.0.0              # PyTorch for model inference
+accelerate>=0.24.0        # Accelerated inference
+bitsandbytes>=0.41.0      # Memory optimization for large models
+sentencepiece>=0.1.99     # Tokenizer for CodeLlama
+
+# Natural Language Processing
+spacy>=3.6.0              # NLP library
+nltk>=3.8.0               # Natural language toolkit
+
+# System integration
+psutil>=5.9.0             # System and process utilities
+subprocess32;python_version<"3.0"  # Enhanced subprocess for older Python
+
+# Configuration and data handling
+pydantic>=2.0.0           # Data validation
+python-dotenv>=1.0.0      # Environment variables
+pyyaml>=6.0               # YAML configuration
+toml>=0.10.2              # TOML configuration
+
+# Async support
+asyncio-compat>=0.1.2     # Async compatibility
+aiofiles>=23.0.0          # Async file operations
+
+# Logging and monitoring
+loguru>=0.7.0             # Advanced logging
+tqdm>=4.64.0              # Progress bars
+
+# File operations and watching
+pathlib2>=2.3.0           # Enhanced pathlib
+watchdog>=3.0.0           # File system monitoring
+
+# Security
+cryptography>=41.0.0      # Encryption and security
+
+# Shell and bash integration
+bashlex>=0.16             # Bash AST parsing
+sh>=2.0.0                 # Python subprocess interface
+
+# Testing dependencies
+pytest>=7.4.0            # Testing framework
+pytest-asyncio>=0.21.0   # Async testing
+pytest-mock>=3.11.0      # Mocking for tests
+coverage>=7.2.0          # Code coverage
+
+# Development tools
+black>=23.0.0             # Code formatting
+flake8>=6.0.0             # Linting
+mypy>=1.4.0               # Type checking
+isort>=5.12.0             # Import sorting
+
+# Memory and performance optimization
+memory-profiler>=0.61.0   # Memory usage profiling
+line-profiler>=4.0.0      # Line-by-line profiling 
