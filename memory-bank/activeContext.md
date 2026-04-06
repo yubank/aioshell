@@ -1,128 +1,61 @@
 # 활성 컨텍스트 - 현재 작업 상황
 
+> 저장소 실제 상태 기준 (2026-04-06). `progress.md`와 동기화됨.
+
 ## 현재 프로젝트 상태
 
-### 방금 완료된 작업
-- ✅ **핵심 쉘 엔진 구현 완료** (2024년 현재)
-  - shell/core/shell_engine.py - 메인 AI 쉘 엔진
-  - shell/core/processors.py - 명령어 처리 파이프라인
-  - shell/ai_integration/codellama_strategy.py - CodeLlama 모델 통합
-  - shell/utils/config.py - 설정 관리 시스템
-  - shell/utils/logging.py - 로깅 시스템
-  - scripts/start.py - 실행 가능한 시작 스크립트
-  - shell/__init__.py - 모듈 초기화
+### 구현 완료 (코드 존재)
+- `shell/core/shell_engine.py` — 메인 AI 쉘 엔진
+- `shell/core/processors.py` — 명령 처리 파이프라인
+- `shell/ai_integration/codellama_strategy.py` — CodeLlama 전략
+- `shell/ai_integration/model_manager.py` — 모델 다운로드·캐시
+- `shell/ai_integration/intent_parser.py` — 규칙 기반 의도 파싱
+- `shell/utils/config.py`, `shell/utils/logging.py`
+- `scripts/start.py`, `scripts/model_cli.py` 등
 
-### 현재 작업 포커스
+### 미구현 또는 부분만 존재
+- `shell/commands/`, `shell/safety/`, `shell/learning/` — 디렉터리·모듈 없음 (문서상 설계만)
+- `tests/` — `README.md`만 있고 `pytest`용 테스트 파일 없음
+- 루트 `README`가 가리키는 일부 `docs/*.md`, `scripts/setup.py` — 저장소와 불일치할 수 있음 (문서 정리 과제)
 
-**단계 2: CodeLlama 모델 관리 시스템 완성** (완료)
-- ✅ ModelManager 클래스 구현 완료
-- ✅ 자동 모델 다운로드 시스템 구현
-- ✅ 모델 캐시 및 메타데이터 관리
-- ✅ CLI 도구 구현 (model_cli.py)
-- ✅ 시작 스크립트에 자동 모델 설정 통합
+### 작업 포커스 (최근)
+- **모델 관리**: ModelManager, `model_cli.py`, 시작 스크립트 연동 — 코드상 반영됨
+- **다음 권장 단계**: 전체 스모크 테스트 → `pytest` 최소 세트 → `commands/`·안전 검증 고도화
 
-**단계 3: 첫 실행 테스트 및 안정화** (거의 완료)
-- ✅ 가상환경 설정 및 기본 의존성 설치
-- ✅ ModelManager 독립 테스트 성공  
-- ✅ CodeLlama 7B 모델 다운로드 시작 (백그라운드 진행 중)
-- 🔄 전체 시스템 통합 테스트 ← 다음 단계
+## 프로젝트 구조 (요약)
 
-## 최근 변경사항
-
-### 프로젝트 구조
 ```
-ai-operating-shell/
-├── docs/                    # ✅ 생성됨 - 문서 및 사용법
-├── examples/                # ✅ 생성됨 - 사용 예시
-├── models/                  # ✅ 생성됨 - AI 모델 저장
-├── scripts/                 # ✅ 생성됨 - 실행 스크립트
-├── shell/                   # ✅ 생성됨 - AI 쉘 코어
-├── tests/                   # ✅ 생성됨 - 테스트 코드
-├── memory-bank/             # 🔄 진행 중 - 프로젝트 메모리
-├── .gitignore              # ✅ 생성됨
-├── LICENSE                 # ✅ 생성됨
-├── README.md               # ✅ 생성됨
-└── requirements.txt        # ✅ 생성됨
+aioshell/
+├── docs/           # 일부 문서만 존재 (MODEL_MANAGEMENT 등)
+├── examples/
+├── models/
+├── scripts/        # start.py, model_cli.py 등
+├── shell/          # core, ai_integration, utils
+├── tests/          # README만 — 테스트 모듈 추가 예정
+├── memory-bank/
+├── README.md
+└── requirements.txt
 ```
-
-### 기술 스택 결정사항
-- **언어**: Python 3.8+
-- **AI/ML**: OpenAI API, Transformers, Torch
-- **CLI**: Click, Rich, Prompt-toolkit
-- **테스트**: Pytest
-- **문서화**: Sphinx
 
 ## 다음 단계 우선순위
 
-### 즉시 해야 할 작업 (이번 세션)
-1. **첫 실행 테스트**
-   - 의존성 설치 및 환경 검증
-   - 기본 동작 테스트
-   - 오류 발생 시 수정
+### 즉시
+1. 로컬 스모크: 의존성 설치 후 `scripts/start.py` 동작 확인
+2. `pytest`용 `tests/test_*.py` 추가 (코어·설정·파서 등)
 
-### 단기 목표 (1-2주)
-1. **기본 기능 안정화**
-   - CodeLlama 모델 로딩 최적화
-   - 자연어 처리 정확도 개선
-   - 오류 처리 강화
+### 단기
+1. `shell/commands/` 도입 및 의도→명령 매핑 정리
+2. 실행 직전 안전 검증 (`shell/safety/` 또는 processors 개선)
+3. 루트 README / `docs` 링크·설치 절차 정합성
 
-2. **추가 명령어 구현**
-   - `shell/commands/` - 고급 파일 관리 명령어
-   - 시스템 모니터링 명령어
-   - 사용자 정의 명령어 지원
+### 중기
+- 자연어·매핑 정확도 개선, 학습·플러그인은 로드맵
 
-### 중기 목표 (1-2개월)
-1. **자연어 처리 엔진**
-   - 명령어 의도 분석
-   - 시스템 명령어 매핑
-   - 안전성 검증 시스템
+## 결정 사항 (유지)
+- 모듈식 설계, 전략 패턴으로 AI 교체 가능성
+- 안전성 우선 — 다만 현재는 입력 단계 검사 위주이며, 전용 안전 모듈은 향후 과제
 
-2. **사용자 학습 시스템**
-   - 패턴 인식
-   - 개인화 엔진
-
-## 현재 결정 사항들
-
-### 아키텍처 결정
-1. **모듈식 설계**: 각 기능을 독립적인 모듈로 구현
-2. **플러그인 시스템**: 확장 가능한 명령어 및 AI 모델 통합
-3. **안전성 우선**: 모든 시스템 변경 작업에 사용자 확인 필수
-
-### 개발 접근법
-1. **단계적 개발**: MVP → 기본 기능 → 고급 기능 순으로 개발
-2. **테스트 주도**: 모든 핵심 기능에 대한 테스트 코드 작성
-3. **문서화 우선**: 코드와 함께 문서 동시 작성
-
-## 현재 고려사항
-
-### 기술적 고려사항
-1. **AI 모델 선택**
-   - 로컬 모델 vs API 기반 모델 (성능/비용 트레이드오프)
-   - 한국어 자연어 처리 성능
-   - 명령어 생성 정확도
-
-2. **보안 고려사항**
-   - 사용자 입력 검증
-   - 시스템 명령어 실행 권한 관리
-   - 민감한 정보 처리 방법
-
-### 사용자 경험 고려사항
-1. **응답 속도**: 자연어 처리 지연 시간 최소화
-2. **오류 처리**: 잘못된 명령어에 대한 친화적 오류 메시지
-3. **학습 곡선**: 신규 사용자를 위한 온보딩 경험
-
-## 블로커 및 리스크
-
-### 현재 블로커
-- 없음 (프로젝트 초기 단계)
-
-### 잠재적 리스크
-1. **AI 모델 성능**: 자연어 → 명령어 변환 정확도
-2. **시스템 호환성**: 다양한 운영체제 지원
-3. **보안 취약점**: 악의적 명령어 실행 방지
-
-## 다음 작업자를 위한 노트
-
-1. **메모리 뱅크 완성 후**: shell/core/ 디렉토리부터 구현 시작 권장
-2. **기술 선택**: requirements.txt의 라이브러리들이 검증되었으니 이를 기반으로 개발
-3. **안전성**: 모든 시스템 변경 작업에는 반드시 사용자 확인 단계 포함할 것 
+## 다음 작업자 노트
+1. **`shell/core`부터 새로 짜는 단계는 아님** — 이미 구현되어 있음.
+2. **`requirements.txt`로 환경 맞춘 뒤** 통합 테스트를 권장.
+3. 위험한 작업은 **실행 전 확인** 흐름을 강화하는 방향이 설계와 일치함.

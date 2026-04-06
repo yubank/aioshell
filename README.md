@@ -34,16 +34,16 @@ ai-operating-shell/
 
 ### 1. 저장소 클론
 ```bash
-git clone https://github.com/yourusername/ai-operating-shell.git
-cd ai-operating-shell
+git clone https://github.com/yubank/aioshell.git
+cd aioshell
 ```
 
 ### 2. 가상환경 생성 및 활성화
 ```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
 # 또는
-venv\Scripts\activate     # Windows
+.venv\Scripts\activate     # Windows
 ```
 
 ### 3. 의존성 설치
@@ -52,9 +52,8 @@ pip install -r requirements.txt
 ```
 
 ### 4. 초기 설정
-```bash
-python scripts/setup.py
-```
+
+프로젝트 루트에 `.config` 또는 `config.yaml`을 두고 AI 백엔드(Ollama 등)를 지정합니다. 자세한 내용은 [설정 방법](docs/configuration.md)과 [설치 가이드](docs/installation.md)를 참고하세요.
 
 ## 🚀 사용법
 

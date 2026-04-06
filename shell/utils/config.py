@@ -123,13 +123,20 @@ class Config:
             },
             
             "ai": {
+                "provider": "local_hf",
                 "model_name": "codellama/CodeLlama-7b-Instruct-hf",
+                "model_key": "codellama-7b",
                 "max_length": 512,
                 "temperature": 0.1,
                 "confidence_threshold": 0.5,
                 "use_quantization": True,
                 "cache_enabled": True,
-                "cache_size": 1000
+                "cache_size": 1000,
+                "ollama": {
+                    "base_url": "http://127.0.0.1:11434",
+                    "model": "llama3.2",
+                    "timeout": 120,
+                },
             },
             
             "shell": {
@@ -171,7 +178,24 @@ class Config:
                 "models_dir": "models",
                 "cache_dir": "cache",
                 "logs_dir": "logs"
-            }
+            },
+
+            # 학습: supervised | reinforcement | preference | none
+            "training": {
+                "mode": "none",
+                "rl": {
+                    "enabled": False,
+                    "algorithm": "ppo_stub",
+                    "epochs": 1,
+                    "episodes_per_epoch": 4,
+                    "learning_rate": 1e-5,
+                    "reward_success": 1.0,
+                    "reward_failure": -1.0,
+                    "trajectory_dir": "data/rl_trajectories",
+                    "checkpoint_dir": "checkpoints/rl",
+                    "prompts": [],
+                },
+            },
         }
     
     def _load_env_file(self) -> None:
@@ -191,8 +215,14 @@ class Config:
             if not config_path.exists():
                 self.logger.warning(f"Config file not found: {config_path}")
                 return
-            
-            if config_path.suffix.lower() == '.json':
+
+            if config_path.name == ".config":
+                raw = config_path.read_text(encoding="utf-8").strip()
+                if raw.startswith("{"):
+                    file_config = json.loads(raw)
+                else:
+                    file_config = yaml.safe_load(raw) or {}
+            elif config_path.suffix.lower() == '.json':
                 with open(config_path, 'r', encoding='utf-8') as f:
                     file_config = json.load(f)
             else:  # YAML
@@ -210,8 +240,11 @@ class Config:
     def _load_default_config_files(self) -> None:
         """기본 설정 파일들 로드"""
         default_paths = [
+            ".config",
+            ".config.yaml",
+            ".config.yml",
             "config.yaml",
-            "config.yml", 
+            "config.yml",
             "config.json",
             Path.home() / ".ai-shell" / "config.yaml",
             Path.home() / ".ai-shell" / "config.yml",
@@ -245,7 +278,14 @@ class Config:
             'LOG_FILE': 'logging.file',
             
             # 디버그 모드
-            'DEBUG': 'app.debug'
+            'DEBUG': 'app.debug',
+
+            # 학습 모드 (reinforcement | supervised | preference | none)
+            'TRAINING_MODE': 'training.mode',
+            'RL_EPOCHS': 'training.rl.epochs',
+
+            # AI 백엔드 (local_hf | ollama)
+            'AI_PROVIDER': 'ai.provider',
         }
         
         for env_var, config_key in env_mappings.items():
@@ -295,6 +335,10 @@ class Config:
     def get_safety_config(self) -> Dict[str, Any]:
         """안전성 관련 설정 반환"""
         return self.get('safety', {})
+
+    def get_training_config(self) -> Dict[str, Any]:
+        """학습·강화학습 관련 설정 반환"""
+        return self.get('training', {})
     
     def is_debug_mode(self) -> bool:
         """디버그 모드 여부"""

@@ -19,7 +19,7 @@ from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 
 from .processors import ProcessorChain
-from ..ai_integration.codellama_strategy import CodeLlamaStrategy
+from ..ai_integration.strategy_factory import create_ai_strategy
 from ..utils.config import Config
 from ..utils.logging import get_logger
 
@@ -49,8 +49,8 @@ class AIShellEngine:
         else:
             self.config = Config(config)
         
-        # AI 전략 초기화 (CodeLlama)
-        self.ai_strategy = CodeLlamaStrategy(self.config)
+        # AI 전략 (설정 ai.provider: local_hf | ollama)
+        self.ai_strategy = create_ai_strategy(self.config)
         
         # 처리 파이프라인 초기화
         self.processor_chain = ProcessorChain(self.ai_strategy, self.config)

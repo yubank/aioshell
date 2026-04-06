@@ -29,7 +29,9 @@ except ImportError:
 
 from ..core.processors import CommandIntent
 from ..utils.logging import get_logger
+from .intent_patterns import default_intent_patterns
 from .model_manager import ModelManager
+from .prompts import build_shell_intent_prompt
 
 
 class CodeLlamaStrategy:
@@ -52,12 +54,13 @@ class CodeLlamaStrategy:
         
         # 모델 매니저 초기화
         self.model_manager = ModelManager()
-        
-        # 모델 설정
-        self.model_key = config.get("model_key", "codellama-7b")
+
+        ai = config.get("ai") or {}
+        # 모델 설정 (ai.* 우선)
+        self.model_key = ai.get("model_key", config.get("ai.model_key", "codellama-7b"))
         self.device = "cuda" if TORCH_AVAILABLE and torch.cuda.is_available() else "cpu"
-        self.max_length = config.get("max_length", 512)
-        self.temperature = config.get("temperature", 0.1)
+        self.max_length = int(ai.get("max_length", config.get("ai.max_length", 512)))
+        self.temperature = float(ai.get("temperature", config.get("ai.temperature", 0.1)))
         
         # 모델 컴포넌트 (지연 로딩)
         self.tokenizer = None
@@ -227,38 +230,7 @@ class CodeLlamaStrategy:
     
     def _build_analysis_prompt(self, user_input: str) -> str:
         """CodeLlama를 위한 분석 프롬프트 구성"""
-        
-        prompt = f"""<s>[INST] 다음 한국어 자연어 입력을 Linux/bash 명령어 의도로 분석해주세요.
-
-사용자 입력: "{user_input}"
-
-다음 형식으로 응답해주세요:
-INTENT: [의도 유형]
-CONFIDENCE: [0.0-1.0 신뢰도]
-PARAMETERS: [매개변수들]
-COMMAND: [추천 명령어]
-
-지원하는 의도 유형:
-- list_files: 파일 목록 보기
-- find_files: 파일 찾기  
-- show_disk_usage: 디스크 사용량
-- show_processes: 프로세스 목록
-- create_directory: 디렉토리 생성
-- delete_file: 파일 삭제
-- copy_file: 파일 복사
-- move_file: 파일 이동
-- show_system_info: 시스템 정보
-
-예시:
-사용자: "현재 폴더 파일들 보여줘"
-INTENT: list_files
-CONFIDENCE: 0.95
-PARAMETERS: path=., detailed=true
-COMMAND: ls -la
-
-[/INST]"""
-
-        return prompt
+        return build_shell_intent_prompt(user_input)
     
     def _parse_model_output(self, model_output: str, original_input: str) -> CommandIntent:
         """모델 출력을 CommandIntent로 파싱"""
@@ -339,105 +311,7 @@ COMMAND: ls -la
     
     def _build_intent_patterns(self) -> Dict[str, List[Dict[str, Any]]]:
         """의도 분류를 위한 패턴 매핑 구성"""
-        
-        return {
-            "list_files": [
-                {
-                    "pattern": r"(파일|목록|리스트|보여|표시|ls).*(폴더|디렉터리|현재)",
-                    "param_extractors": {
-                        "detailed": r"(자세히|세부|상세)",
-                        "path": r"([/\w.-]+)\s*폴더"
-                    }
-                },
-                {
-                    "pattern": r"(현재|이곳|여기).*(파일|목록|뭐)",
-                    "param_extractors": {}
-                }
-            ],
-            
-            "find_files": [
-                {
-                    "pattern": r"(찾아|검색|find).*(파일|확장자)",
-                    "param_extractors": {
-                        "name": r"['\"]([^'\"]+)['\"]",
-                        "path": r"([/\w.-]+)\s*에서"
-                    }
-                },
-                {
-                    "pattern": r"(큰|대용량|사이즈).*(파일)",
-                    "param_extractors": {}
-                }
-            ],
-            
-            "show_disk_usage": [
-                {
-                    "pattern": r"(디스크|용량|공간|저장).*(사용|남은|확인)",
-                    "param_extractors": {}
-                },
-                {
-                    "pattern": r"(du|df|용량).*(체크|확인)",
-                    "param_extractors": {}
-                }
-            ],
-            
-            "show_processes": [
-                {
-                    "pattern": r"(프로세스|실행중|ps).*(목록|보기|확인)",
-                    "param_extractors": {}
-                },
-                {
-                    "pattern": r"(실행|돌아가는).*(프로그램|작업)",
-                    "param_extractors": {}
-                }
-            ],
-            
-            "create_directory": [
-                {
-                    "pattern": r"(만들어|생성|mkdir).*(폴더|디렉터리)",
-                    "param_extractors": {
-                        "path": r"['\"]([^'\"]+)['\"]|(\w+)\s*폴더"
-                    }
-                }
-            ],
-            
-            "delete_file": [
-                {
-                    "pattern": r"(삭제|지워|제거|rm).*(파일|폴더)",
-                    "param_extractors": {
-                        "path": r"['\"]([^'\"]+)['\"]"
-                    }
-                }
-            ],
-            
-            "copy_file": [
-                {
-                    "pattern": r"(복사|copy|cp).*(파일|폴더)",
-                    "param_extractors": {
-                        "source": r"['\"]([^'\"]+)['\"]",
-                        "destination": r"에서\s+['\"]([^'\"]+)['\"]"
-                    }
-                }
-            ],
-            
-            "move_file": [
-                {
-                    "pattern": r"(이동|move|mv).*(파일|폴더)",
-                    "param_extractors": {
-                        "source": r"['\"]([^'\"]+)['\"]",
-                        "destination": r"에서\s+['\"]([^'\"]+)['\"]"
-                    }
-                }
-            ],
-            
-            "show_system_info": [
-                {
-                    "pattern": r"(시스템|정보|환경|스펙).*(확인|보기|정보)",
-                    "param_extractors": {
-                        "type": r"(메모리|CPU|디스크|일반)"
-                    }
-                }
-            ]
-        }
+        return default_intent_patterns()
     
     async def get_available_models(self) -> List[Dict]:
         """사용 가능한 모델 목록 반환"""

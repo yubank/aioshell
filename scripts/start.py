@@ -14,10 +14,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from shell.core.shell_engine import AIShellEngine
 from shell.utils.config import Config
 from shell.utils.logging import setup_logging, get_logger
-from shell.ai_integration.model_manager import ModelManager
 
 
 def parse_arguments():
@@ -78,6 +76,37 @@ def parse_arguments():
         action="version",
         version="AI Operating Shell 0.1.0"
     )
+
+    parser.add_argument(
+        "--smoke",
+        action="store_true",
+        help="모델·다운로드 없이 ProcessorChain 스모크만 수행하고 종료",
+    )
+
+    parser.add_argument(
+        "--rl-train",
+        action="store_true",
+        help="학습 모드로 훈련만 수행하고 종료 (기본: 강화학습 궤적 수집)",
+    )
+    parser.add_argument(
+        "--train-mode",
+        choices=["reinforcement", "supervised", "preference"],
+        default="reinforcement",
+        help="--rl-train 일 때 학습 종류 (기본: reinforcement)",
+    )
+    parser.add_argument(
+        "--train-epochs",
+        type=int,
+        default=None,
+        help="RL 에폭 수 (training.rl.epochs 오버라이드)",
+    )
+
+    parser.add_argument(
+        "--ai-provider",
+        choices=["local_hf", "ollama"],
+        default=None,
+        help="AI 백엔드 (설정 파일의 ai.provider를 덮어씀)",
+    )
     
     return parser.parse_args()
 
@@ -101,6 +130,9 @@ def setup_config(args):
     if args.no_safe_mode:
         config.set("shell.safe_mode", False)
         config.set("safety.enabled", False)
+
+    if getattr(args, "ai_provider", None):
+        config.set("ai.provider", args.ai_provider)
     
     return config
 
@@ -141,6 +173,16 @@ def check_requirements():
 async def check_and_setup_model(config):
     """모델 확인 및 초기화"""
     from rich.console import Console
+
+    provider = (config.get("ai") or {}).get("provider", "local_hf")
+    if provider in ("ollama", "ollama_http"):
+        console = Console()
+        om = config.get("ai.ollama.model") or config.get("ai", {}).get("ollama", {}).get("model", "llama3.2")
+        console.print(f"[green]✓ AI provider: Ollama (model={om})[/green]")
+        return config.get("ai.model_key", "ollama")
+
+    from shell.ai_integration.model_manager import ModelManager
+
     from rich.progress import Progress, SpinnerColumn, TextColumn
     import torch
     
@@ -207,6 +249,8 @@ def display_startup_info(config, model_key):
     from rich.panel import Panel
     from rich.table import Table
     import torch
+
+    provider = (config.get("ai") or {}).get("provider", "local_hf")
     
     console = Console()
     
@@ -214,9 +258,13 @@ def display_startup_info(config, model_key):
     table = Table(title="🤖 AI Shell 시작 정보")
     table.add_column("항목", style="cyan")
     table.add_column("값", style="green")
-    
+
+    table.add_row("AI provider", provider)
     table.add_row("모델", model_key)
-    table.add_row("디바이스", "CUDA" if torch.cuda.is_available() else "CPU")
+    if provider in ("ollama", "ollama_http"):
+        table.add_row("디바이스", "Ollama (HTTP)")
+    else:
+        table.add_row("디바이스", "CUDA" if torch.cuda.is_available() else "CPU")
     table.add_row("안전 모드", "활성화" if config.get("safety.enabled", True) else "비활성화")
     table.add_row("디버그 모드", "활성화" if config.get("debug", False) else "비활성화")
     table.add_row("로그 레벨", config.get("logging.level", "INFO"))
@@ -227,10 +275,35 @@ def display_startup_info(config, model_key):
 
 async def main():
     """메인 실행 함수"""
+    args = parse_arguments()
     try:
-        # 명령줄 인자 파싱
-        args = parse_arguments()
-        
+        # 스모크: LLM/torch 없이 파이프라인만 검증
+        if getattr(args, "smoke", False):
+            from shell.smoke import run_smoke_pipeline
+            from shell.utils.config import Config as SmokeConfig
+            from shell.utils.logging import setup_logging as setup_logging_smoke
+
+            setup_logging_smoke(SmokeConfig().get("logging", {}))
+            result = await run_smoke_pipeline()
+            if result.success:
+                print(f"[smoke OK] executed={result.executed_command!r} output={result.output!r}")
+                return
+            print(f"[smoke FAIL] {result.error_message}")
+            sys.exit(1)
+
+        if getattr(args, "rl_train", False):
+            from shell.learning.rl_trainer import run_training_from_config
+
+            config = setup_config(args)
+            config.set("training.mode", args.train_mode)
+            config.set("training.rl.enabled", True)
+            if args.train_epochs is not None:
+                config.set("training.rl.epochs", args.train_epochs)
+            setup_logging(config.get("logging", {}))
+            code = run_training_from_config(config)
+            sys.exit(code)
+
+        # 명령줄 인자 파싱은 이미 수행됨
         # 필수 패키지 확인
         if not check_requirements():
             sys.exit(1)
@@ -254,6 +327,8 @@ async def main():
         display_startup_info(config, model_key)
         
         # AI Shell 엔진 생성 및 시작
+        from shell.core.shell_engine import AIShellEngine
+
         shell = AIShellEngine(config)
         await shell.start()
         
